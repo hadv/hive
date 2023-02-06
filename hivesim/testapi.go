@@ -160,7 +160,7 @@ func (c *Client) RPC() *rpc.Client {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if c.rpc == nil {
-		c.rpc, _ = rpc.DialHTTP(fmt.Sprintf("http://%v:8545", c.IP))
+		c.rpc, _ = rpc.DialHTTP(fmt.Sprintf("http://%v:18545", c.IP))
 	}
 	return c.rpc
 }
