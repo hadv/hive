@@ -23,7 +23,7 @@ var (
 	// Address of the vault in genesis.
 	predeployedVaultAddr = common.HexToAddress("0000000000000000000000000000000000000315")
 	// Number of blocks to wait before funding tx is considered valid.
-	vaultTxConfirmationCount = uint64(5)
+	vaultTxConfirmationCount = uint64(1)
 )
 
 // vault creates accounts for testing and funds them. An instance of the vault contract is
@@ -180,7 +180,7 @@ func (v *vault) createAccount(t *TestEnv, amount *big.Int) common.Address {
 
 	// wait for vaultTxConfirmationCount confirmation by checking the balance vaultTxConfirmationCount blocks back.
 	// createAndFundAccountWithSubscription for a better solution using logs
-	for i := uint64(0); i < vaultTxConfirmationCount*12; i++ {
+	for i := uint64(0); i < vaultTxConfirmationCount*60; i++ {
 		number, err := t.Eth.BlockNumber(t.Ctx())
 		if err != nil {
 			t.Fatalf("can't get block number:", err)
