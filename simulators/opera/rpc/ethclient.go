@@ -146,7 +146,6 @@ func balanceAndNonceAtTest(t *TestEnv) {
 
 	// Get current balance
 	sourceAddressBalanceBefore, err := t.Eth.BalanceAt(t.Ctx(), sourceAddr, nil)
-	t.Logf("source address %v balance before: %d", sourceAddr, sourceAddressBalanceBefore)
 	if err != nil {
 		t.Fatalf("Unable to retrieve balance: %v", err)
 	}
