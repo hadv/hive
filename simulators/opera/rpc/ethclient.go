@@ -70,13 +70,13 @@ contract Test {
 )
 
 var (
-	big0 = new(big.Int)
+	big0 = big.NewInt(0)
 	big1 = big.NewInt(1)
 )
 
 // CodeAtTest tests the code for the pre-deployed contract.
 func CodeAtTest(t *TestEnv) {
-	code, err := t.Eth.CodeAt(t.Ctx(), predeployedContractAddr, big0)
+	code, err := t.Ftm.CodeAt(t.Ctx(), predeployedContractAddr, nil)
 	if err != nil {
 		t.Fatalf("Could not fetch code for predeployed contract: %v", err)
 	}
@@ -102,7 +102,7 @@ func estimateGasTest(t *TestEnv) {
 		To:   &predeployedContractAddr,
 		Data: payload,
 	}
-	estimated, err := t.Eth.EstimateGas(t.Ctx(), msg)
+	estimated, err := t.Ftm.EstimateGas(t.Ctx(), msg)
 	if err != nil {
 		t.Fatalf("Could not estimate gas: %v", err)
 	}
@@ -115,7 +115,7 @@ func estimateGasTest(t *TestEnv) {
 		t.Fatalf("Could not sign transaction: %v", err)
 	}
 
-	if err := t.Eth.SendTransaction(t.Ctx(), tx); err != nil {
+	if err := t.Ftm.SendTransaction(t.Ctx(), tx); err != nil {
 		t.Fatalf("Could not send tx: %v", err)
 	}
 
@@ -145,7 +145,7 @@ func balanceAndNonceAtTest(t *TestEnv) {
 	)
 
 	// Get current balance
-	sourceAddressBalanceBefore, err := t.Eth.BalanceAt(t.Ctx(), sourceAddr, nil)
+	sourceAddressBalanceBefore, err := t.Ftm.BalanceAt(t.Ctx(), sourceAddr, nil)
 	if err != nil {
 		t.Fatalf("Unable to retrieve balance: %v", err)
 	}
@@ -155,7 +155,7 @@ func balanceAndNonceAtTest(t *TestEnv) {
 		t.Errorf("Expected balance %d, got %d", expected, sourceAddressBalanceBefore)
 	}
 
-	nonceBefore, err := t.Eth.NonceAt(t.Ctx(), sourceAddr, nil)
+	nonceBefore, err := t.Ftm.NonceAt(t.Ctx(), sourceAddr, nil)
 	if err != nil {
 		t.Fatalf("Unable to determine nonce: %v", err)
 	}
@@ -176,13 +176,13 @@ func balanceAndNonceAtTest(t *TestEnv) {
 	sourceNonce++
 
 	t.Logf("BalanceAt: send %d wei from 0x%x to 0x%x in 0x%x", valueTx.Value(), sourceAddr, targetAddr, valueTx.Hash())
-	if err := t.Eth.SendTransaction(t.Ctx(), valueTx); err != nil {
+	if err := t.Ftm.SendTransaction(t.Ctx(), valueTx); err != nil {
 		t.Fatalf("Unable to send transaction: %v", err)
 	}
 
 	var receipt *types.Receipt
 	for {
-		receipt, err = t.Eth.TransactionReceipt(t.Ctx(), valueTx.Hash())
+		receipt, err = t.Ftm.TransactionReceipt(t.Ctx(), valueTx.Hash())
 		if receipt != nil {
 			break
 		}
@@ -193,11 +193,11 @@ func balanceAndNonceAtTest(t *TestEnv) {
 	}
 
 	// ensure balances have been updated
-	accountBalanceAfter, err := t.Eth.BalanceAt(t.Ctx(), sourceAddr, nil)
+	accountBalanceAfter, err := t.Ftm.BalanceAt(t.Ctx(), sourceAddr, nil)
 	if err != nil {
 		t.Fatalf("Unable to retrieve balance: %v", err)
 	}
-	balanceTargetAccountAfter, err := t.Eth.BalanceAt(t.Ctx(), targetAddr, nil)
+	balanceTargetAccountAfter, err := t.Ftm.BalanceAt(t.Ctx(), targetAddr, nil)
 	if err != nil {
 		t.Fatalf("Unable to retrieve balance: %v", err)
 	}
@@ -215,7 +215,7 @@ func balanceAndNonceAtTest(t *TestEnv) {
 	}
 
 	// ensure nonce is incremented by 1
-	nonceAfter, err := t.Eth.NonceAt(t.Ctx(), sourceAddr, nil)
+	nonceAfter, err := t.Ftm.NonceAt(t.Ctx(), sourceAddr, nil)
 	if err != nil {
 		t.Fatalf("Unable to determine nonce: %v", err)
 	}
@@ -225,72 +225,13 @@ func balanceAndNonceAtTest(t *TestEnv) {
 	}
 }
 
-// genesisByHash fetches the known genesis header and compares
-// it against the genesis file to determine if block fields are
-// returned correct.
-func genesisHeaderByHashTest(t *TestEnv) {
-	gblock := loadGenesis()
-
-	headerByHash, err := t.Eth.HeaderByHash(t.Ctx(), gblock.Hash())
-	if err != nil {
-		t.Fatalf("Unable to fetch block %x: %v", gblock.Hash(), err)
-	}
-	if d := diff(gblock.Header(), headerByHash); d != "" {
-		t.Fatal("genesis header reported by node differs from expected header:\n", d)
-	}
-}
-
-// headerByNumberTest fetched the known genesis header and compares
-// it against the genesis file to determine if block fields are
-// returned correct.
-func genesisHeaderByNumberTest(t *TestEnv) {
-	gblock := loadGenesis()
-
-	headerByNum, err := t.Eth.HeaderByNumber(t.Ctx(), big0)
-	if err != nil {
-		t.Fatalf("Unable to fetch genesis block: %v", err)
-	}
-	if d := diff(gblock.Header(), headerByNum); d != "" {
-		t.Fatal("genesis header reported by node differs from expected header:\n", d)
-	}
-}
-
-// genesisBlockByHashTest fetched the known genesis block and compares it against
-// the genesis file to determine if block fields are returned correct.
-func genesisBlockByHashTest(t *TestEnv) {
-	gblock := loadGenesis()
-
-	blockByHash, err := t.Eth.BlockByHash(t.Ctx(), gblock.Hash())
-	if err != nil {
-		t.Fatalf("Unable to fetch block %x: %v", gblock.Hash(), err)
-	}
-	if d := diff(gblock.Header(), blockByHash.Header()); d != "" {
-		t.Fatal("genesis header reported by node differs from expected header:\n", d)
-	}
-}
-
-// genesisBlockByNumberTest retrieves block 0 since that is the only block
-// that is known through the genesis.json file and tests if block
-// fields matches the fields defined in the genesis file.
-func genesisBlockByNumberTest(t *TestEnv) {
-	gblock := loadGenesis()
-
-	blockByNum, err := t.Eth.BlockByNumber(t.Ctx(), big0)
-	if err != nil {
-		t.Fatalf("Unable to fetch genesis block: %v", err)
-	}
-	if d := diff(gblock.Header(), blockByNum.Header()); d != "" {
-		t.Fatal("genesis header reported by node differs from expected header:\n", d)
-	}
-}
-
 // canonicalChainTest loops over 10 blocks and does some basic validations
 // to ensure the chain form a valid canonical chain and resources like uncles,
 // transactions and receipts can be fetched and provide a consistent view.
 func canonicalChainTest(t *TestEnv) {
 	// wait a bit so there is actually a chain with enough height
 	for {
-		latestBlock, err := t.Eth.BlockByNumber(t.Ctx(), nil)
+		latestBlock, err := t.Ftm.BlockByNumber(t.Ctx(), nil)
 		if err != nil {
 			t.Fatalf("Unable to fetch latest block")
 		}
@@ -302,7 +243,7 @@ func canonicalChainTest(t *TestEnv) {
 
 	var childBlock *types.Block
 	for i := 10; i >= 0; i-- {
-		block, err := t.Eth.BlockByNumber(t.Ctx(), big.NewInt(int64(i)))
+		block, err := t.Ftm.BlockByNumber(t.Ctx(), big.NewInt(int64(i)))
 		if err != nil {
 			t.Fatalf("Unable to fetch block #%d", i)
 		}
@@ -315,14 +256,14 @@ func canonicalChainTest(t *TestEnv) {
 		// try to fetch all txs and receipts and do some basic validation on them
 		// to check if the fetched chain is consistent.
 		for _, tx := range block.Transactions() {
-			fetchedTx, _, err := t.Eth.TransactionByHash(t.Ctx(), tx.Hash())
+			fetchedTx, _, err := t.Ftm.TransactionByHash(t.Ctx(), tx.Hash())
 			if err != nil {
 				t.Fatalf("Unable to fetch transaction %x from block %x: %v", tx.Hash(), block.Hash(), err)
 			}
 			if fetchedTx == nil {
 				t.Fatalf("Transaction %x could not be found but was included in block %x", tx.Hash(), block.Hash())
 			}
-			receipt, err := t.Eth.TransactionReceipt(t.Ctx(), fetchedTx.Hash())
+			receipt, err := t.Ftm.TransactionReceipt(t.Ctx(), fetchedTx.Hash())
 			if err != nil {
 				t.Fatalf("Unable to fetch receipt for %x from block %x: %v", fetchedTx.Hash(), block.Hash(), err)
 			}
@@ -336,7 +277,7 @@ func canonicalChainTest(t *TestEnv) {
 
 		// make sure all uncles can be fetched
 		for _, uncle := range block.Uncles() {
-			uBlock, err := t.Eth.HeaderByHash(t.Ctx(), uncle.Hash())
+			uBlock, err := t.Ftm.HeaderByHash(t.Ctx(), uncle.Hash())
 			if err != nil {
 				t.Fatalf("Unable to fetch uncle block: %v", err)
 			}
@@ -367,7 +308,7 @@ func deployContractTest(t *TestEnv) {
 	}
 
 	// deploy contract
-	if err := t.Eth.SendTransaction(t.Ctx(), deployTx); err != nil {
+	if err := t.Ftm.SendTransaction(t.Ctx(), deployTx); err != nil {
 		t.Fatalf("Unable to send transaction: %v", err)
 	}
 
@@ -386,7 +327,7 @@ func deployContractTest(t *TestEnv) {
 	}
 
 	// test deployed code matches runtime code
-	code, err := t.Eth.CodeAt(t.Ctx(), receipt.ContractAddress, nil)
+	code, err := t.Ftm.CodeAt(t.Ctx(), receipt.ContractAddress, nil)
 	if err != nil {
 		t.Fatalf("Unable to fetch contract code: %v", err)
 	}
@@ -395,7 +336,7 @@ func deployContractTest(t *TestEnv) {
 	}
 
 	// test contract state, pos 0 must be 1234
-	value, err := t.Eth.StorageAt(t.Ctx(), receipt.ContractAddress, common.Hash{}, nil)
+	value, err := t.Ftm.StorageAt(t.Ctx(), receipt.ContractAddress, common.Hash{}, nil)
 	if err == nil {
 		v := new(big.Int).SetBytes(value)
 		if v.Uint64() != 1234 {
@@ -411,7 +352,7 @@ func deployContractTest(t *TestEnv) {
 	storageKey[63] = 1
 	storageKey = crypto.Keccak256(storageKey)
 
-	value, err = t.Eth.StorageAt(t.Ctx(), receipt.ContractAddress, common.BytesToHash(storageKey), nil)
+	value, err = t.Ftm.StorageAt(t.Ctx(), receipt.ContractAddress, common.BytesToHash(storageKey), nil)
 	if err == nil {
 		v := new(big.Int).SetBytes(value)
 		if v.Uint64() != 1234 {
@@ -441,7 +382,7 @@ func deployContractOutOfGasTest(t *TestEnv) {
 		t.Fatalf("unable to sign deploy tx: %v", err)
 	}
 	t.Logf("out of gas tx: %x", deployTx.Hash())
-	if err := t.Eth.SendTransaction(t.Ctx(), deployTx); err != nil {
+	if err := t.Ftm.SendTransaction(t.Ctx(), deployTx); err != nil {
 		t.Fatalf("unable to send transaction: %v", err)
 	}
 
@@ -464,7 +405,7 @@ func deployContractOutOfGasTest(t *TestEnv) {
 		t.Errorf("receipt has empty block hash", receipt.BlockHash)
 	}
 	// Check that nothing is deployed at the contract address.
-	code, err := t.Eth.CodeAt(t.Ctx(), contractAddress, nil)
+	code, err := t.Ftm.CodeAt(t.Ctx(), contractAddress, nil)
 	if err != nil {
 		t.Fatalf("unable to fetch code: %v", err)
 	}
@@ -495,7 +436,7 @@ func receiptTest(t *TestEnv) {
 		t.Fatalf("Unable to sign deploy tx: %v", err)
 	}
 
-	if err := t.Eth.SendTransaction(t.Ctx(), tx); err != nil {
+	if err := t.Ftm.SendTransaction(t.Ctx(), tx); err != nil {
 		t.Fatalf("Unable to send transaction: %v", err)
 	}
 
@@ -578,7 +519,7 @@ func validateLog(t *TestEnv, tx *types.Transaction, log types.Log, contractAddre
 
 // syncProgressTest only tests if this function is supported by the node.
 func syncProgressTest(t *TestEnv) {
-	_, err := t.Eth.SyncProgress(t.Ctx())
+	_, err := t.Ftm.SyncProgress(t.Ctx())
 	if err != nil {
 		t.Fatalf("Unable to determine sync progress: %v", err)
 	}
@@ -596,7 +537,7 @@ func transactionInBlockTest(t *TestEnv) {
 	for {
 		blockNumber.Add(blockNumber, big1)
 
-		block, err := t.Eth.BlockByNumber(t.Ctx(), blockNumber)
+		block, err := t.Ftm.BlockByNumber(t.Ctx(), blockNumber)
 		if err == ethereum.NotFound { // end of chain
 			rawTx := types.NewTransaction(nonce, predeployedVaultAddr, big1, 100000, gasPrice, nil)
 			nonce++
@@ -605,7 +546,7 @@ func transactionInBlockTest(t *TestEnv) {
 			if err != nil {
 				t.Fatalf("Unable to sign deploy tx: %v", err)
 			}
-			if err = t.Eth.SendTransaction(t.Ctx(), tx); err != nil {
+			if err = t.Ftm.SendTransaction(t.Ctx(), tx); err != nil {
 				t.Fatalf("Unable to send transaction: %v", err)
 			}
 			time.Sleep(time.Second)
@@ -618,7 +559,7 @@ func transactionInBlockTest(t *TestEnv) {
 			continue
 		}
 		for i := 0; i < len(block.Transactions()); i++ {
-			_, err := t.Eth.TransactionInBlock(t.Ctx(), block.Hash(), uint(i))
+			_, err := t.Ftm.TransactionInBlock(t.Ctx(), block.Hash(), uint(i))
 			if err != nil {
 				t.Fatalf("Unable to fetch transaction by block hash and index: %v", err)
 			}
@@ -632,7 +573,7 @@ func transactionInBlockTest(t *TestEnv) {
 func transactionInBlockSubscriptionTest(t *TestEnv) {
 	var heads = make(chan *types.Header, 100)
 
-	sub, err := t.Eth.SubscribeNewHead(t.Ctx(), heads)
+	sub, err := t.Ftm.SubscribeNewHead(t.Ctx(), heads)
 	if err != nil {
 		t.Fatalf("Unable to subscribe to new heads: %v", err)
 	}
@@ -644,7 +585,7 @@ func transactionInBlockSubscriptionTest(t *TestEnv) {
 		if err != nil {
 			t.Fatalf("Unable to sign deploy tx: %v", err)
 		}
-		if err = t.Eth.SendTransaction(t.Ctx(), tx); err != nil {
+		if err = t.Ftm.SendTransaction(t.Ctx(), tx); err != nil {
 			t.Fatalf("Unable to send transaction: %v", err)
 		}
 	}
@@ -654,7 +595,7 @@ func transactionInBlockSubscriptionTest(t *TestEnv) {
 	for {
 		head := <-heads
 
-		block, err := t.Eth.BlockByHash(t.Ctx(), head.Hash())
+		block, err := t.Ftm.BlockByHash(t.Ctx(), head.Hash())
 		if err != nil {
 			t.Fatalf("Unable to retrieve block %x: %v", head.Hash(), err)
 		}
@@ -662,7 +603,7 @@ func transactionInBlockSubscriptionTest(t *TestEnv) {
 			continue
 		}
 		for i := 0; i < len(block.Transactions()); i++ {
-			_, err = t.Eth.TransactionInBlock(t.Ctx(), head.Hash(), uint(i))
+			_, err = t.Ftm.TransactionInBlock(t.Ctx(), head.Hash(), uint(i))
 			if err != nil {
 				t.Fatalf("Unable to fetch transaction by block hash and index: %v", err)
 			}
@@ -677,7 +618,7 @@ func newHeadSubscriptionTest(t *TestEnv) {
 		heads = make(chan *types.Header)
 	)
 
-	sub, err := t.Eth.SubscribeNewHead(t.Ctx(), heads)
+	sub, err := t.Ftm.SubscribeNewHead(t.Ctx(), heads)
 	if err != nil {
 		t.Fatalf("Unable to subscribe to new heads: %v", err)
 	}
@@ -686,7 +627,7 @@ func newHeadSubscriptionTest(t *TestEnv) {
 	for i := 0; i < 10; i++ {
 		select {
 		case newHead := <-heads:
-			header, err := t.Eth.HeaderByHash(t.Ctx(), newHead.Hash())
+			header, err := t.Ftm.HeaderByHash(t.Ctx(), newHead.Hash())
 			if err != nil {
 				t.Fatalf("Unable to fetch header: %v", err)
 			}
@@ -708,7 +649,7 @@ func logSubscriptionTest(t *TestEnv) {
 		logs = make(chan types.Log)
 	)
 
-	sub, err := t.Eth.SubscribeFilterLogs(t.Ctx(), criteria, logs)
+	sub, err := t.Ftm.SubscribeFilterLogs(t.Ctx(), criteria, logs)
 	if err != nil {
 		t.Fatalf("Unable to create log subscription: %v", err)
 	}
@@ -730,7 +671,7 @@ func logSubscriptionTest(t *TestEnv) {
 		t.Fatalf("Unable to sign deploy tx: %v", err)
 	}
 
-	if err = t.Eth.SendTransaction(t.Ctx(), tx); err != nil {
+	if err = t.Ftm.SendTransaction(t.Ctx(), tx); err != nil {
 		t.Fatalf("Unable to send transaction: %v", err)
 	}
 
@@ -803,16 +744,16 @@ func transactionCountTest(t *TestEnv) {
 			t.Fatalf("Unable to sign deploy tx: %v", err)
 		}
 
-		if err = t.Eth.SendTransaction(t.Ctx(), tx); err != nil {
+		if err = t.Ftm.SendTransaction(t.Ctx(), tx); err != nil {
 			t.Fatalf("Unable to send transaction: %v", err)
 		}
-		block, err := t.Eth.BlockByNumber(t.Ctx(), nil)
+		block, err := t.Ftm.BlockByNumber(t.Ctx(), nil)
 		if err != nil {
 			t.Fatalf("Unable to retrieve latest block: %v", err)
 		}
 
 		if len(block.Transactions()) > 0 {
-			count, err := t.Eth.TransactionCount(t.Ctx(), block.Hash())
+			count, err := t.Ftm.TransactionCount(t.Ctx(), block.Hash())
 			if err != nil {
 				t.Fatalf("Unable to retrieve block transaction count: %v", err)
 			}
@@ -838,12 +779,12 @@ func TransactionReceiptTest(t *TestEnv) {
 		t.Fatalf("Unable to sign deploy tx: %v", err)
 	}
 
-	if err = t.Eth.SendTransaction(t.Ctx(), tx); err != nil {
+	if err = t.Ftm.SendTransaction(t.Ctx(), tx); err != nil {
 		t.Fatalf("Unable to send transaction: %v", err)
 	}
 
 	for i := 0; i < 60; i++ {
-		receipt, err := t.Eth.TransactionReceipt(t.Ctx(), tx.Hash())
+		receipt, err := t.Ftm.TransactionReceipt(t.Ctx(), tx.Hash())
 		if err == ethereum.NotFound {
 			time.Sleep(time.Second)
 			continue
@@ -860,9 +801,6 @@ func TransactionReceiptTest(t *TestEnv) {
 		}
 		if receipt.Bloom.Big().Cmp(big0) != 0 {
 			t.Errorf("Receipt [tx=%x] bloom not empty, %x", tx.Hash(), receipt.Bloom)
-		}
-		if receipt.GasUsed != params.TxGas {
-			t.Errorf("Receipt [tx=%x] has invalid gas used, want %d, got %d", tx.Hash(), params.TxGas, receipt.GasUsed)
 		}
 		if len(receipt.Logs) != 0 {
 			t.Errorf("Receipt [tx=%x] should not contain logs but got %d logs", tx.Hash(), len(receipt.Logs))

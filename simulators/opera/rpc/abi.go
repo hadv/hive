@@ -14,7 +14,7 @@ import (
 	"github.com/ethereum/go-ethereum/core/types"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/params"
-	"github.com/ethereum/hive/simulators/ethereum/rpc/testcontract"
+	"github.com/hadv/hive/simulators/opera/rpc/testcontract"
 )
 
 //go:generate abigen -abi ./contractABI.json -pkg testcontract -type Contract -out ./testcontract/contract.go
@@ -22,7 +22,7 @@ import (
 // callContractTest uses the generated ABI binding to call methods in the
 // pre-deployed contract.
 func callContractTest(t *TestEnv) {
-	contract, err := testcontract.NewContractCaller(predeployedContractAddr, t.Eth)
+	contract, err := testcontract.NewContractCaller(predeployedContractAddr, t.Ftm)
 	if err != nil {
 		t.Fatalf("Unable to instantiate contract caller: %v", err)
 	}
@@ -88,7 +88,7 @@ func transactContractTest(t *TestEnv) {
 	}
 
 	// deploy contract
-	if err := t.Eth.SendTransaction(t.Ctx(), deployTx); err != nil {
+	if err := t.Ftm.SendTransaction(t.Ctx(), deployTx); err != nil {
 		t.Fatalf("Unable to send transaction: %v", err)
 	}
 
@@ -120,7 +120,7 @@ func transactContractTest(t *TestEnv) {
 	if err != nil {
 		t.Fatalf("Unable to sign deploy tx: %v", err)
 	}
-	if err := t.Eth.SendTransaction(t.Ctx(), tx); err != nil {
+	if err := t.Ftm.SendTransaction(t.Ctx(), tx); err != nil {
 		t.Fatalf("Unable to send transaction: %v", err)
 	}
 
@@ -176,7 +176,7 @@ func transactContractSubscriptionTest(t *TestEnv) {
 	}
 
 	ctx, _ := context.WithTimeout(context.Background(), rpcTimeout)
-	if err := t.Eth.SendTransaction(ctx, deployTx); err != nil {
+	if err := t.Ftm.SendTransaction(ctx, deployTx); err != nil {
 		t.Fatalf("Unable to send transaction: %v", err)
 	}
 
@@ -198,7 +198,7 @@ func transactContractSubscriptionTest(t *TestEnv) {
 	// setup log subscription
 	ctx, _ = context.WithTimeout(context.Background(), rpcTimeout)
 	q := ethereum.FilterQuery{Addresses: []common.Address{receipt.ContractAddress}}
-	sub, err := t.Eth.SubscribeFilterLogs(ctx, q, logs)
+	sub, err := t.Ftm.SubscribeFilterLogs(ctx, q, logs)
 	if err != nil {
 		t.Fatalf("Unable to create log subscription: %v", err)
 	}
@@ -208,7 +208,7 @@ func transactContractSubscriptionTest(t *TestEnv) {
 
 	defer sub.Unsubscribe()
 
-	contract, err := testcontract.NewContractTransactor(receipt.ContractAddress, t.Eth)
+	contract, err := testcontract.NewContractTransactor(receipt.ContractAddress, t.Ftm)
 	if err != nil {
 		t.Fatalf("Could not instantiate contract instance: %v", err)
 	}

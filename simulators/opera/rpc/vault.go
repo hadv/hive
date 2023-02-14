@@ -99,7 +99,7 @@ func (v *vault) createAccountWithSubscription(t *TestEnv, amount *big.Int) commo
 	defer cancel()
 
 	// listen for new heads
-	headsSub, err := t.Eth.SubscribeNewHead(ctx, heads)
+	headsSub, err := t.Ftm.SubscribeNewHead(ctx, heads)
 	if err != nil {
 		t.Fatal("could not create new head subscription:", err)
 	}
@@ -112,7 +112,7 @@ func (v *vault) createAccountWithSubscription(t *TestEnv, amount *big.Int) commo
 		Addresses: []common.Address{predeployedVaultAddr},
 		Topics:    [][]common.Hash{{eventTopic}, {addressTopic}},
 	}
-	logsSub, err = t.Eth.SubscribeFilterLogs(ctx, q, logs)
+	logsSub, err = t.Ftm.SubscribeFilterLogs(ctx, q, logs)
 	if err != nil {
 		t.Fatal("could not create log filter subscription:", err)
 	}
@@ -120,7 +120,7 @@ func (v *vault) createAccountWithSubscription(t *TestEnv, amount *big.Int) commo
 
 	// order the vault to send some ether
 	tx := v.makeFundingTx(t, address, amount)
-	if err := t.Eth.SendTransaction(ctx, tx); err != nil {
+	if err := t.Ftm.SendTransaction(ctx, tx); err != nil {
 		t.Fatalf("unable to send funding transaction: %v", err)
 	}
 
@@ -169,11 +169,11 @@ func (v *vault) createAccount(t *TestEnv, amount *big.Int) common.Address {
 
 	// order the vault to send some ether
 	tx := v.makeFundingTx(t, address, amount)
-	if err := t.Eth.SendTransaction(t.Ctx(), tx); err != nil {
+	if err := t.Ftm.SendTransaction(t.Ctx(), tx); err != nil {
 		t.Fatalf("unable to send funding transaction: %v", err)
 	}
 
-	txBlock, err := t.Eth.BlockNumber(t.Ctx())
+	txBlock, err := t.Ftm.BlockNumber(t.Ctx())
 	if err != nil {
 		t.Fatalf("can't get block number:", err)
 	}
@@ -181,13 +181,13 @@ func (v *vault) createAccount(t *TestEnv, amount *big.Int) common.Address {
 	// wait for vaultTxConfirmationCount confirmation by checking the balance vaultTxConfirmationCount blocks back.
 	// createAndFundAccountWithSubscription for a better solution using logs
 	for i := uint64(0); i < vaultTxConfirmationCount*60; i++ {
-		number, err := t.Eth.BlockNumber(t.Ctx())
+		number, err := t.Ftm.BlockNumber(t.Ctx())
 		if err != nil {
 			t.Fatalf("can't get block number:", err)
 		}
 		if number > txBlock+vaultTxConfirmationCount {
 			checkBlock := number - vaultTxConfirmationCount
-			balance, err := t.Eth.BalanceAt(t.Ctx(), address, new(big.Int).SetUint64(checkBlock))
+			balance, err := t.Ftm.BalanceAt(t.Ctx(), address, new(big.Int).SetUint64(checkBlock))
 			if err != nil {
 				panic(err)
 			}

@@ -48,15 +48,15 @@ type testSpec struct {
 var tests = []testSpec{
 	// HTTP RPC tests.
 	{Name: "http/BalanceAndNonceAt", Run: balanceAndNonceAtTest},
-	// {Name: "http/CodeAt", Run: CodeAtTest},
+	{Name: "http/CodeAt", Run: CodeAtTest},
 	{Name: "http/ContractDeployment", Run: deployContractTest},
 	{Name: "http/ContractDeploymentOutOfGas", Run: deployContractOutOfGasTest},
 	// {Name: "http/EstimateGas", Run: estimateGasTest},
 	{Name: "http/Receipt", Run: receiptTest},
 	{Name: "http/SyncProgress", Run: syncProgressTest},
-	// {Name: "http/TransactionCount", Run: transactionCountTest},
-	// {Name: "http/TransactionInBlock", Run: transactionInBlockTest},
-	// {Name: "http/TransactionReceipt", Run: TransactionReceiptTest},
+	{Name: "http/TransactionCount", Run: transactionCountTest},
+	{Name: "http/TransactionInBlock", Run: transactionInBlockTest},
+	{Name: "http/TransactionReceipt", Run: TransactionReceiptTest},
 
 	// HTTP ABI tests.
 	{Name: "http/ABICall", Run: callContractTest},
@@ -64,19 +64,19 @@ var tests = []testSpec{
 
 	// WebSocket RPC tests.
 	{Name: "ws/BalanceAndNonceAt", Run: balanceAndNonceAtTest},
-	// {Name: "ws/CodeAt", Run: CodeAtTest},
+	{Name: "ws/CodeAt", Run: CodeAtTest},
 	{Name: "ws/ContractDeployment", Run: deployContractTest},
 	{Name: "ws/ContractDeploymentOutOfGas", Run: deployContractOutOfGasTest},
 	// {Name: "ws/EstimateGas", Run: estimateGasTest},
 	{Name: "ws/Receipt", Run: receiptTest},
 	{Name: "ws/SyncProgress", Run: syncProgressTest},
-	// {Name: "ws/TransactionCount", Run: transactionCountTest},
-	// {Name: "ws/TransactionInBlock", Run: transactionInBlockTest},
-	// {Name: "ws/TransactionReceipt", Run: TransactionReceiptTest},
+	{Name: "ws/TransactionCount", Run: transactionCountTest},
+	{Name: "ws/TransactionInBlock", Run: transactionInBlockTest},
+	{Name: "ws/TransactionReceipt", Run: TransactionReceiptTest},
 
 	// WebSocket subscription tests.
+	{Name: "ws/LogSubscription", Run: logSubscriptionTest},
 	// {Name: "ws/NewHeadSubscription", Run: newHeadSubscriptionTest},
-	// {Name: "ws/LogSubscription", Run: logSubscriptionTest},
 	// {Name: "ws/TransactionInBlockSubscription", Run: transactionInBlockSubscriptionTest},
 
 	// WebSocket ABI tests.
@@ -95,7 +95,7 @@ interacting with one.`[1:],
 
 	// Add tests for full nodes.
 	suite.Add(&hivesim.ClientTestSpec{
-		Role:        "eth1",
+		Role:        "opera",
 		Name:        "client launch",
 		Description: `This test launches the client and collects its logs.`,
 		Parameters:  clientEnv,
