@@ -3,17 +3,15 @@ package main
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"time"
 
+	"github.com/Fantom-foundation/go-opera/ftmclient"
 	"github.com/ethereum/go-ethereum"
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core"
 	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethclient"
 	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ethereum/hive/hivesim"
 	"github.com/kr/pretty"
@@ -26,7 +24,7 @@ var rpcTimeout = 10 * time.Second
 type TestEnv struct {
 	*hivesim.T
 	RPC   *rpc.Client
-	Eth   *ethclient.Client
+	Ftm   *ftmclient.Client
 	Vault *vault
 
 	// This holds most recent context created by the Ctx method.
@@ -51,7 +49,7 @@ func runHTTP(t *hivesim.T, c *hivesim.Client, v *vault, fn func(*TestEnv)) {
 	env := &TestEnv{
 		T:     t,
 		RPC:   rpcClient,
-		Eth:   ethclient.NewClient(rpcClient),
+		Ftm:   ftmclient.NewClient(rpcClient),
 		Vault: v,
 	}
 	fn(env)
@@ -73,7 +71,7 @@ func runWS(t *hivesim.T, c *hivesim.Client, v *vault, fn func(*TestEnv)) {
 	env := &TestEnv{
 		T:     t,
 		RPC:   rpcClient,
-		Eth:   ethclient.NewClient(rpcClient),
+		Ftm:   ftmclient.NewClient(rpcClient),
 		Vault: v,
 	}
 	fn(env)
@@ -112,7 +110,7 @@ func waitSynced(c *rpc.Client) (err error) {
 		}
 	}()
 
-	ec := ethclient.NewClient(c)
+	ec := ftmclient.NewClient(c)
 	for {
 		progress, err := ec.SyncProgress(ctx)
 		if err != nil {
@@ -139,7 +137,7 @@ func waitForTxConfirmations(t *TestEnv, txHash common.Hash, n uint64) (*types.Re
 	)
 
 	for i := 0; i < 90; i++ {
-		receipt, err = t.Eth.TransactionReceipt(t.Ctx(), txHash)
+		receipt, err = t.Ftm.TransactionReceipt(t.Ctx(), txHash)
 		if err != nil && err != ethereum.NotFound {
 			return nil, err
 		}
@@ -152,18 +150,18 @@ func waitForTxConfirmations(t *TestEnv, txHash common.Hash, n uint64) (*types.Re
 		return nil, ethereum.NotFound
 	}
 
-	if startBlock, err = t.Eth.BlockByNumber(t.Ctx(), nil); err != nil {
+	if startBlock, err = t.Ftm.BlockByNumber(t.Ctx(), nil); err != nil {
 		return nil, err
 	}
 
 	for i := 0; i < 90; i++ {
-		currentBlock, err := t.Eth.BlockByNumber(t.Ctx(), nil)
+		currentBlock, err := t.Ftm.BlockByNumber(t.Ctx(), nil)
 		if err != nil {
 			return nil, err
 		}
 
 		if startBlock.NumberU64()+n >= currentBlock.NumberU64() {
-			if checkReceipt, err := t.Eth.TransactionReceipt(t.Ctx(), txHash); checkReceipt != nil {
+			if checkReceipt, err := t.Ftm.TransactionReceipt(t.Ctx(), txHash); checkReceipt != nil {
 				if bytes.Compare(receipt.PostState, checkReceipt.PostState) == 0 {
 					return receipt, nil
 				} else { // chain reorg
@@ -213,18 +211,6 @@ func (rt *loggingRoundTrip) RoundTrip(req *http.Request) (*http.Response, error)
 	respCopy.Body = ioutil.NopCloser(bytes.NewReader(respBytes))
 	rt.t.Logf("<<  %s", bytes.TrimSpace(respBytes))
 	return &respCopy, nil
-}
-
-func loadGenesis() *types.Block {
-	contents, err := ioutil.ReadFile("init/genesis.json")
-	if err != nil {
-		panic(fmt.Errorf("can't to read genesis file: %v", err))
-	}
-	var genesis core.Genesis
-	if err := json.Unmarshal(contents, &genesis); err != nil {
-		panic(fmt.Errorf("can't parse genesis JSON: %v", err))
-	}
-	return genesis.ToBlock()
 }
 
 // diff checks whether x and y are deeply equal, returning a description
