@@ -108,8 +108,7 @@ func estimateGasTest(t *TestEnv) {
 	}
 
 	// send the actual tx and test gas usage
-	txGas := estimated + 100000
-	rawTx := types.NewTransaction(0, *msg.To, msg.Value, txGas, big.NewInt(32*params.GWei), msg.Data)
+	rawTx := types.NewTransaction(0, *msg.To, msg.Value, estimated, big.NewInt(32*params.GWei), msg.Data)
 	tx, err := t.Vault.signTransaction(address, rawTx)
 	if err != nil {
 		t.Fatalf("Could not sign transaction: %v", err)
