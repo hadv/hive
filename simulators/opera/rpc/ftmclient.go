@@ -108,7 +108,18 @@ func estimateGasTest(t *TestEnv) {
 	}
 
 	// send the actual tx and test gas usage
-	rawTx := types.NewTransaction(0, *msg.To, msg.Value, estimated, big.NewInt(32*params.GWei), msg.Data)
+	// add extra gas to check the gas refund as well
+	var extraGas uint64 = 100000
+	txGas := estimated + extraGas
+	// go-opera consume 10% of not used gas
+	/**
+		// use 10% of not used gas
+		if !st.internal() {
+			st.gas -= st.gas / 10
+		}
+	**/
+	expectedGasUsed := estimated + extraGas/10
+	rawTx := types.NewTransaction(0, *msg.To, msg.Value, txGas, big.NewInt(32*params.GWei), msg.Data)
 	tx, err := t.Vault.signTransaction(address, rawTx)
 	if err != nil {
 		t.Fatalf("Could not sign transaction: %v", err)
@@ -124,12 +135,12 @@ func estimateGasTest(t *TestEnv) {
 	}
 
 	// test lower bound
-	if estimated < receipt.GasUsed {
-		t.Fatalf("Estimated gas too low, want %d >= %d", estimated, receipt.GasUsed)
+	if expectedGasUsed < receipt.GasUsed {
+		t.Fatalf("Estimated gas too low, want %d >= %d", expectedGasUsed, receipt.GasUsed)
 	}
 	// test upper bound
-	if receipt.GasUsed+5000 < estimated {
-		t.Fatalf("Estimated gas too high, estimated: %d, used: %d", estimated, receipt.GasUsed)
+	if receipt.GasUsed+5000 < expectedGasUsed {
+		t.Fatalf("Estimated gas too high, estimated: %d, used: %d", expectedGasUsed, receipt.GasUsed)
 	}
 }
 
